@@ -75,6 +75,8 @@ start_double_quote_re = re.compile('''(^|\s|'|`)"''')
 end_double_quote_re = re.compile('"(,|\.|\s|$)')
 
 def unescape_html_entities(text):
+
+    if (text is None): return ""
     """
     Reverses the escaping process that Markdown does for HTML
     :param: str text The text to escape
@@ -86,13 +88,17 @@ def unescape_html_entities(text):
     return out
 #
 def escape_latex_entities(text):
-    if(text is None): return ""
     """Escape latex reserved characters using the '\\' character"""
+
+    if(text is None): return ""
+
     out = text
     out = unescape_html_entities(out)
     out = out.replace('%', '\\%')
     out = out.replace('&', '\\&')
     out = out.replace('#', '\\#')
+    out = out.replace('_', '\\_')
+    out = out.replace('~', '\\~')
     # TODO: Check how this should work
     out = start_single_quote_re.sub('\g<1>`', out)
     out = start_double_quote_re.sub('\g<1>``', out)
@@ -102,7 +108,12 @@ def escape_latex_entities(text):
     # out = out.replace('}', '\\}')
     # do not do '$' here because it is dealt with by convert_maths
     # out = out.replace('$', '\\$')
+
+
+    #TODO:    & % $ # _ { } ~ ^ \
+    # See: http://tex.stackexchange.com/a/34586/76599
     return out
+
 #
 # def unescape_latex_entities(text):
 #     """Limit ourselves as this is only used for maths stuff."""
@@ -154,7 +165,42 @@ class LaTeXExtension(Extension):
         #del md.inlinePatterns['not_strong'] #md.inlinePatterns.add('em', InlineProcessor(inlinepatterns.EMPHASIS_RE, md), )
 
         #md.inlinePatterns["emphasis"]= InlineProcessor(inlinepatterns.EMPHASIS_RE)
+        """
+        inlinePatterns = odict.OrderedDict()
+    #inlinePatterns["backtick"] = BacktickPattern(BACKTICK_RE)
+    #inlinePatterns["escape"] = EscapePattern(ESCAPE_RE, md_instance)
+    #inlinePatterns["reference"] = ReferencePattern(REFERENCE_RE, md_instance)
+    #inlinePatterns["link"] = LinkPattern(LINK_RE, md_instance)
+    inlinePatterns["image_link"] = ImagePattern(IMAGE_LINK_RE, md_instance)
+    inlinePatterns["image_reference"] = ImageReferencePattern(
+        IMAGE_REFERENCE_RE, md_instance
+    )
+    inlinePatterns["short_reference"] = ReferencePattern(
+        SHORT_REF_RE, md_instance
+    )
+    inlinePatterns["autolink"] = AutolinkPattern(AUTOLINK_RE, md_instance)
+    inlinePatterns["automail"] = AutomailPattern(AUTOMAIL_RE, md_instance)
+    inlinePatterns["linebreak"] = SubstituteTagPattern(LINE_BREAK_RE, 'br')
+    if md_instance.safeMode != 'escape':
+        inlinePatterns["html"] = HtmlPattern(HTML_RE, md_instance)
+    inlinePatterns["entity"] = HtmlPattern(ENTITY_RE, md_instance)
+    inlinePatterns["not_strong"] = SimpleTextPattern(NOT_STRONG_RE)
+    inlinePatterns["em_strong"] = DoubleTagPattern(EM_STRONG_RE, 'strong,em')
+    inlinePatterns["strong_em"] = DoubleTagPattern(STRONG_EM_RE, 'em,strong')
+    if md_instance.smart_emphasis:
+        inlinePatterns["emphasis2"] = SimpleTagPattern(SMART_EMPHASIS_RE, 'em')
+    else:
+        inlinePatterns["emphasis2"] = SimpleTagPattern(EMPHASIS_2_RE, 'em')
+    return inlinePatterns
+    """
+
+        md.inlinePatterns["backtick"] = MacroPattern(inlinepatterns.BACKTICK_RE, macro='verb')
+        #TODO md.inlinePatterns["escape"] = EscapePattern(inlinepatterns.ESCAPE_RE, md_instance)
+        #TODO: Really necessary? md.inlinePatterns["reference"] = ReferencePattern(inlinepatterns.REFERENCE_RE, md_instance)
+        md.inlinePatterns["link"] = LinkPattern(inlinepatterns.LINK_RE)
         md.inlinePatterns["emphasis"] = EmphasisPattern(inlinepatterns.EMPHASIS_RE)
+        md.inlinePatterns["strong"] = StrongPattern(inlinepatterns.STRONG_RE)
+        #TODO md.inlinePatterns["linebreak"] = LineBreakPattern(inlinepatterns.LINE_BREAK_RE)
         md.treeprocessors['latex'] = treeprocessor
 
 #          math_pp = MathTextPostProcessor()
@@ -184,7 +230,7 @@ class LaTeXTreeProcessor(Treeprocessor):
         '''Walk the dom converting relevant nodes to text nodes with relevant content.'''
 
         latex_text = self.tolatex(root)
-        return latex_text
+        #return latex_text
 #         # attach latex text as only element
 #         # have to put it in a p tag as text node for document element does not
 #         # work ...
@@ -206,7 +252,7 @@ class LaTeXTreeProcessor(Treeprocessor):
         if node.tag == 'div':
             for n in node:
                 buffer += self.tolatex(n)
-
+            node.clear()
             node.text = buffer
 
         # Sections
@@ -230,7 +276,6 @@ class LaTeXTreeProcessor(Treeprocessor):
             buffer += '\n\\subsubsection{%s}\n' % node.text
             return buffer
         elif node.tag in ['p', 'h5', 'h6']:
-            print(node.text)
             buffer += escape_latex_entities(node.text) if node.text else ""
             #if node.text is not None:
             #    print(node.text, len(node.text))
@@ -389,11 +434,52 @@ class LaTeXTreeProcessor(Treeprocessor):
 #             buffer = subcontent
 #         return buffer
 
+class LinkPattern(SimpleTextPattern):
 
-class EmphasisPattern(SimpleTextPattern):
+    @staticmethod
+    def dequote(string):
+        """Remove quotes from around a string."""
+        if ((string.startswith('"') and string.endswith('"')) or
+           (string.startswith("'") and string.endswith("'"))):
+            return string[1:-1]
+        else:
+            return string
 
     def handleMatch(self, m):
+        #el = util.etree.Element("a")
+        text = escape_latex_entities(m.group(2))
+        #title = m.group(13)
+        href = escape_latex_entities(m.group(9))
+        if href:
+            if href[0] == "<":
+                href = href[1:-1]
+            #TODO el.set("href", self.sanitize_url(self.unescape(href.strip())))
+        else:
+            href = ""
+
+        if text:
+            return "\\href{%s}{%s}" % (href, text)
+
+        return "\\href{%s}" % href
+
+class EmphasisPattern(SimpleTextPattern):
+    def handleMatch(self, m):
         return "\\textit{%s}" % m.group(3)
+
+class StrongPattern(SimpleTextPattern):
+    def handleMatch(self, m):
+        return "\\textbf{%s}" % m.group(3)
+
+class LineBreakPattern(SimpleTextPattern):
+    def handleMatch(self, m):
+        return "\\\\"
+
+class MacroPattern(SimpleTextPattern):
+    def __init__(self, *args, **kwargs):
+        self.macro = kwargs.pop('macro', '')
+        super(MacroPattern, self).__init__(*args, **kwargs)
+    def handleMatch(self, m):
+        return "\\%s{%s}" % (self.macro, m.group(3).replace('\n', ''))
 
 class InlineProcessor(Pattern):
     def __init__(self, *args, **kwargs):
