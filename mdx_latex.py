@@ -61,10 +61,12 @@ import re
 #import markdown
 from markdown.postprocessors import Postprocessor
 #from markdown.preprocessors import Preprocessor
+from markdown.inlinepatterns import Pattern, SimpleTextPattern, SimpleTagPattern
 from markdown.treeprocessors import Treeprocessor
 from markdown.extensions import Extension
 import markdown.inlinepatterns as inlinepatterns
 #import xml.dom.minidom
+from markdown.util import etree
 __version__ = '1.3.1'
 
 
@@ -125,10 +127,14 @@ class LaTeXExtension(Extension):
         # remove escape pattern -- \\(.*) -- as this messes up any embedded
         # math and we don't need to escape stuff any more for html
 
-        i = next((index for (index,pat) in self.md.inlinePatterns.items() if pat.pattern == inlinepatterns.ESCAPE_RE), None)
-
-        if i is not None:
-            del self.md.inlinePatterns[i]
+        remove_patterns = [inlinepatterns.ESCAPE_RE, inlinepatterns.EMPHASIS_RE]
+        #i= next((index for (index,pat) in self.md.inlinePatterns.items() if pat.pattern == inlinepatterns.ESCAPE_RE), None)
+        #if i is not None:
+        #    print(i)
+        #    del self.md.inlinePatterns[i]
+        for i in ((index for (index,pat) in self.md.inlinePatterns.items() if pat.pattern in remove_patterns)):
+            if i is not None:
+                del self.md.inlinePatterns[i]
 
 #         #for pat in self.md.inlinePatterns:
 #         #    if pat.pattern == markdown.ESCAPE_RE:
@@ -138,9 +144,20 @@ class LaTeXExtension(Extension):
 #
         # Insert a post-processor that would actually add the footnote div
         treeprocessor = LaTeXTreeProcessor(maketitle=self.maketitle)
+        #index = md.inlinePatterns.index(md_globals['IMAGE_REFERENCE_PATTERN'])
+        #md.inlinePatterns.insert(1,key="emphasis", value=InlineProcessor(inlinepatterns.EMPHASIS_RE, self))
+        #del md.inlinePatterns['strong']
+        #del md.inlinePatterns['emphasis']
+        #del md.inlinePatterns['strong_em']
+        #del md.inlinePatterns['em_strong']
+        #del md.inlinePatterns['emphasis2']
+        #del md.inlinePatterns['not_strong'] #md.inlinePatterns.add('em', InlineProcessor(inlinepatterns.EMPHASIS_RE, md), )
+
+        #md.inlinePatterns["emphasis"]= InlineProcessor(inlinepatterns.EMPHASIS_RE)
+        md.inlinePatterns["emphasis"] = EmphasisPattern(inlinepatterns.EMPHASIS_RE)
         md.treeprocessors['latex'] = treeprocessor
-#
-#         math_pp = MathTextPostProcessor()
+
+#          math_pp = MathTextPostProcessor()
 #         table_pp = TableTextPostProcessor()
 #         image_pp = ImageTextPostProcessor()
 #         unescape_html_pp = UnescapeHtmlTextPostProcessor()
@@ -213,13 +230,19 @@ class LaTeXTreeProcessor(Treeprocessor):
             buffer += '\n\\subsubsection{%s}\n' % node.text
             return buffer
         elif node.tag in ['p', 'h5', 'h6']:
-
+            print(node.text)
             buffer += escape_latex_entities(node.text) if node.text else ""
+            #if node.text is not None:
+            #    print(node.text, len(node.text))
             for n in node:
+                text = self.tolatex(n)
+                n.clear()
+                n.text = text
                 if(hasattr(n,'tag') and n.tag == 'code'):
                     text = """\\begin{verbatim}%s\\end{verbatim}""" % n.text
                 else:
                     text = n.text
+
                 buffer += escape_latex_entities(text)
             buffer +='\n'
             return buffer
@@ -255,7 +278,9 @@ class LaTeXTreeProcessor(Treeprocessor):
 %s\\end{quotation}
 """ % buffer
             return buffer
-
+        elif (node.tag == 'code'):
+            buffer = """\\begin{verbatim}%s\\end{verbatim}""" % node.text
+            return buffer
         # ignore 'code' when inside pre tags
         # (mkdn produces <pre><code></code></pre>)
         # TODO: Second condition will only be true iff the first one is too, thus it is redundant
@@ -271,6 +296,12 @@ class LaTeXTreeProcessor(Treeprocessor):
             return buffer
         elif node.tag == 'q':
             buffer += "`%s'" % node.text
+            return buffer
+
+        # Phrase emphasis
+        elif node.tag == 'em':
+            buffer += "\\emph{%s}" % node.text
+            return buffer
 
 #         elif ournode.nodeName == 'p':
 #             buffer += '\n%s\n' % subcontent.strip()
@@ -357,7 +388,29 @@ class LaTeXTreeProcessor(Treeprocessor):
 #         else:
 #             buffer = subcontent
 #         return buffer
-#
+
+
+class EmphasisPattern(SimpleTextPattern):
+
+    def handleMatch(self, m):
+        return "\\textit{%s}" % m.group(3)
+
+class InlineProcessor(Pattern):
+    def __init__(self, *args, **kwargs):
+        super(InlineProcessor, self).__init__(*args, **kwargs)
+        self.compiled_re = re.compile(inlinepatterns.EMPHASIS_RE)
+
+    def getCompiledRegExp(self):
+        print("Here")
+        return self.compiled_re
+        #return re.compile(inlinepatterns.EMPHASIS_RE)
+
+    def handleMatch(self, m):
+        print("Here")
+        el = etree.Element('')
+        el.text = "Emphasized handled text"
+        return el
+
 # class UnescapeHtmlTextPostProcessor(Postprocessor):
 #
 #     def run(self, text):
