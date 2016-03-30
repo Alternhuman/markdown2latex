@@ -1,6 +1,60 @@
 from setuptools import setup
 
-from mdx_latex import __version__, __doc__
+__version__ = '2.0'
+doc = """Extension to python-markdown to support LaTeX (rather than html) output.
+
+Authored by Rufus Pollock: <http://www.rufuspollock.org/>
+
+Usage:
+======
+
+1. Command Line. A script entitled markdown2latex.py is automatically
+installed. For details of usage see help::
+
+    $ markdown2latex.py -h
+
+2. As a python-markdown extension::
+
+    >>> import markdown
+    >>> md = markdown.Markdown(None, extensions=['latex'])
+    >>> # text is input string ...
+    >>> latex_out = md.convert(text)
+
+3. Directly as a module (slight inversion of std markdown extension setup)::
+
+    >>> import markdown
+    >>> import mdx_latex
+    >>> md = markdown.Markdown()
+    >>> latex_mdx = mdx_latex.LaTeXExtension()
+    >>> latex_mdx.extendMarkdown(md, markdown.__dict__)
+    >>> out = md.convert(text)
+
+History
+=======
+
+Version: 1.0 (November 15, 2006)
+
+  * First working version (compatible with markdown 1.5)
+  * Includes support for tables
+
+Version: 1.1 (January 17, 2007)
+
+  * Support for verbatim and images
+
+Version: 1.2 (June 2008)
+
+  * Refactor as an extension.
+  * Make into a proper python/setuptools package.
+  * Tested with markdown 1.7 but should work with 1.6 and (possibly) 1.5
+    (though pre/post processor stuff not as worked out there)
+
+Version 1.3: (July 2008)
+  * Improvements to image output (width)
+
+Version 1.3.1: (August 2009)
+  * Tiny bugfix to remove duplicate keyword argument and set zip_safe=False
+  * Add [width=\textwidth] by default for included images
+"""
 
 setup(
     name = 'markdown2latex',
@@ -18,8 +72,8 @@ setup(
     author = 'Diego Martín',
     url = 'https://github.com/Alternhuman/markdown2latex.git',
     author_email = 'diegomartinpi [at] gmail [dot] com',
-    description = __doc__.split()[0],
-    long_description = __doc__,
+    description = doc.split()[0],
+    long_description = doc,
     license = 'MIT',
     keywords = 'latex markdown python',
     download_url = 'https://github.com/Alternhuman/markdown2latex.git',
