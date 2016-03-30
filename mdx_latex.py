@@ -67,7 +67,7 @@ from markdown.extensions import Extension
 import markdown.inlinepatterns as inlinepatterns
 #import xml.dom.minidom
 from markdown.util import etree
-__version__ = '1.3.1'
+__version__ = '2.0'
 
 
 start_single_quote_re = re.compile("""(^|\s|")'""")

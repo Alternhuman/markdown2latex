@@ -11,21 +11,21 @@ setup(
     markdown2latex.py=mdx_latex:main
     ''',
     install_requires=[
-        'Markdown>=1.5',
+        'Markdown>=2.6.6',
         ],
 
     # metadata for upload to PyPI
-    author = 'Rufus Pollock (Open Knowledge Foundation)',
-    url = 'http://www.okfn.org/okftext/',
-    author_email = 'rufus [at] rufuspollock [dot] org',
+    author = 'Diego Martín',
+    url = 'https://github.com/Alternhuman/markdown2latex.git',
+    author_email = 'diegomartinpi [at] gmail [dot] com',
     description = __doc__.split()[0],
     long_description = __doc__,
     license = 'MIT',
     keywords = 'latex markdown python',
-    download_url = 'http://pypi.python.org/pypi/markdown2latex/',
+    download_url = 'https://github.com/Alternhuman/markdown2latex.git',
     zip_safe=False,
     classifiers = [
-        'Development Status :: 5 - Production/Stable',
+        'Development Status :: 2 - Pre-Alpha',
         'Environment :: Console',
         'Intended Audience :: Developers',
         'License :: OSI Approved :: BSD License',
