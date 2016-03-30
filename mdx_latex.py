@@ -991,3 +991,36 @@ class InlineProcessor(Pattern):
 #                 out = template(tmpl_fo, out)
 #
 #     print(out)
+
+def main():
+    import argparse
+    usage = \
+        """usage: %prog [options] <in-file-path>
+
+    Given a file path, process it using markdown2latex and print the result on
+    stdout.
+
+    If using template option template should place text INSERT-TEXT-HERE in the
+    template where text should be inserted.
+    """
+    parser = argparse.ArgumentParser(description=usage)
+    parser.add_argument('-t', '--template', dest='template',
+                      default='', help='path to latex template file (optional)')
+    (options, args) = parser.parse_args()
+    if not len(args) > 0:
+        parser.print_help()
+        sys.exit(1)
+
+    inpath = args[0]
+    with open(inpath, 'r') as infile:
+
+        md = markdown.Markdown()
+        mkdn2latex = LaTeXExtension()
+        mkdn2latex.extendMarkdown(md, markdown.__dict__)
+        out = md.convert(infile.read())
+
+        if options.template:
+            with open(options.template) as tmpl_fo:
+                out = template(tmpl_fo, out)
+
+    print(out)
