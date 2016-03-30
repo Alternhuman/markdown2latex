@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 from markdown import Markdown
 from mdx_latex import LaTeXExtension
 
@@ -61,11 +62,34 @@ This is code
 ```
 
     This is a code block
+
+*This is an emphasized text*
+
+This is a second *emphasized* text
+This is **strong**
+
+
 """
+
+    text = """[title](http://link_a.com&path=Something "Title")
+<http://url.com>
+<mail@mail.com>
+[mail](mailto:mail@mail.com)
+*Standalone text
+_Standalone text
+
+_Not standalone text_
+
+***strongem***
+
+"""
+    text = """![image](image_url.png)"""
+
     md = Markdown()
     mkdn2latex = LaTeXExtension(configs={}, maketitle=True)
 
     mkdn2latex.extendMarkdown(md, Markdown.__dict__)
 
     out = md.convert(text)
+
     print(out)

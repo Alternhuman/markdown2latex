@@ -194,10 +194,27 @@ class LaTeXExtension(Extension):
     return inlinePatterns
     """
 
-        md.inlinePatterns["backtick"] = MacroPattern(inlinepatterns.BACKTICK_RE, macro='verb')
+        md.inlinePatterns["backtick"] = MacroPattern(inlinepatterns.BACKTICK_RE, macro='verb') #TODO Add group number?
         #TODO md.inlinePatterns["escape"] = EscapePattern(inlinepatterns.ESCAPE_RE, md_instance)
         #TODO: Really necessary? md.inlinePatterns["reference"] = ReferencePattern(inlinepatterns.REFERENCE_RE, md_instance)
         md.inlinePatterns["link"] = LinkPattern(inlinepatterns.LINK_RE)
+        md.inlinePatterns["image_link"] = ImagePattern(inlinepatterns.IMAGE_LINK_RE, image_options = {"width": "0.5\\textwidth",
+                                                                                                      "height": "0.5\\textheight"})
+        #TODO inlinePatterns["image_reference"] = ImageReferencePattern(
+        #                                         IMAGE_REFERENCE_RE, md_instance
+        #                                     )
+        #TODO inlinePatterns["short_reference"] = ReferencePattern(
+        #     SHORT_REF_RE, md_instance
+        # )
+        md.inlinePatterns["autolink"] = AutoLinkPattern(inlinepatterns.AUTOLINK_RE)
+        md.inlinePatterns["automail"] = AutomailPattern(inlinepatterns.AUTOMAIL_RE)
+        #TODO inlinePatterns["linebreak"] = SubstituteTagPattern(LINE_BREAK_RE, 'br')
+        #TODO if md_instance.safeMode != 'escape':
+        #    inlinePatterns["html"] = HtmlPattern(HTML_RE, md_instance)
+        # TODO: Is it necessary? md.inlinePatterns["entity"] = HtmlPattern(inlinepatterns.ENTITY_RE)
+
+        md.inlinePatterns["not_strong"] = SimpleTextPattern(inlinepatterns.NOT_STRONG_RE)
+        md.inlinePatterns["em_strong"] = DoubleMacroPattern(inlinepatterns.EM_STRONG_RE, macros=['textbf','textit'])
         md.inlinePatterns["emphasis"] = EmphasisPattern(inlinepatterns.EMPHASIS_RE)
         md.inlinePatterns["strong"] = StrongPattern(inlinepatterns.STRONG_RE)
         #TODO md.inlinePatterns["linebreak"] = LineBreakPattern(inlinepatterns.LINE_BREAK_RE)
@@ -433,11 +450,7 @@ class LaTeXTreeProcessor(Treeprocessor):
 #         else:
 #             buffer = subcontent
 #         return buffer
-
-class LinkPattern(SimpleTextPattern):
-
-    @staticmethod
-    def dequote(string):
+def dequote(string):
         """Remove quotes from around a string."""
         if ((string.startswith('"') and string.endswith('"')) or
            (string.startswith("'") and string.endswith("'"))):
@@ -445,11 +458,52 @@ class LinkPattern(SimpleTextPattern):
         else:
             return string
 
+class ImagePattern(SimpleTextPattern):
+
+    def __init__(self, *args, **kwargs):
+        self.image_options = kwargs.pop('image_options', {})
+        super(ImagePattern, self).__init__(*args, **kwargs)
+
+    def handleMatch(self, m):
+        latex_width = ''
+        latex_height = ''
+        caption = escape_latex_entities(unescape_html_entities(m.group(2)))
+        image_url = escape_latex_entities(unescape_html_entities(m.group(9)))
+
+        image_options = []
+        for key, value in self.image_options.items():
+            if len(value): image_options.append("%s=%s" % (key, value))
+
+        # width = self.image_options.get('width', '')
+        # if len(width): latex_width = "width=%s" % width
+        # height = self.image_options.get('height', '')
+        # if len(height): latex_height = "height=%s" % height
+
+        latex_image_options = ', '.join([opt for opt in image_options if len(opt)])
+
+
+        return """\\begin{figure}\\includegraphics[%s]{%s}\\caption{%s}\\end{figure}}""" \
+               % (latex_image_options, image_url, caption)
+        text = escape_latex_entities(unescape_html_entities(m.group(2)))
+        href = escape_latex_entities(unescape_html_entities(m.group(9)))
+        if href:
+            if href[0] == "<":
+                href = href[1:-1]
+        else:
+            href = ""
+
+        if text:
+            return "\\href{%s}{%s}" % (href, text)
+
+        return "\\href{%s}" % href
+
+class LinkPattern(SimpleTextPattern):
+
     def handleMatch(self, m):
         #el = util.etree.Element("a")
-        text = escape_latex_entities(m.group(2))
+        text = escape_latex_entities(unescape_html_entities(m.group(2)))
         #title = m.group(13)
-        href = escape_latex_entities(m.group(9))
+        href = escape_latex_entities(unescape_html_entities(m.group(9)))
         if href:
             if href[0] == "<":
                 href = href[1:-1]
@@ -461,6 +515,56 @@ class LinkPattern(SimpleTextPattern):
             return "\\href{%s}{%s}" % (href, text)
 
         return "\\href{%s}" % href
+
+class AutoLinkPattern(SimpleTextPattern):
+    def handleMatch(self, m):
+        href = escape_latex_entities(unescape_html_entities(m.group(2)))
+
+        if href:
+            if href[0] == "<":
+                href = href[1:-1]
+        else:
+            href = ""
+
+        return "\\href{%s}" % href
+
+class AutomailPattern(SimpleTextPattern):
+    def handleMatch(self, m):
+        #TODO
+
+        # TODO: Review
+        # el = util.etree.Element('a')
+        # email = self.unescape(m.group(2))
+        # if email.startswith("mailto:"):
+        #     email = email[len("mailto:"):]
+        #
+        # def codepoint2name(code):
+        #     """Return entity definition by code, or the code if not defined."""
+        #     entity = entities.codepoint2name.get(code)
+        #     if entity:
+        #         return "%s%s;" % (util.AMP_SUBSTITUTE, entity)
+        #     else:
+        #         return "%s#%d;" % (util.AMP_SUBSTITUTE, code)
+        #
+        # letters = [codepoint2name(ord(letter)) for letter in email]
+        # el.text = util.AtomicString(''.join(letters))
+        #
+        # mailto = "mailto:" + email
+        # mailto = "".join([util.AMP_SUBSTITUTE + '#%d;' %
+        #                   ord(letter) for letter in mailto])
+        # el.set('href', mailto)
+        # return el
+
+        mail = m.group(2)
+        if mail.startswith('mailto:'):
+            mail = mail[len('mailto:'):]
+
+        mail = escape_latex_entities(unescape_html_entities(mail))
+
+        return "\\href{%s}{%s}" % ('mailto:'+mail, mail)
+
+
+
 
 class EmphasisPattern(SimpleTextPattern):
     def handleMatch(self, m):
@@ -480,6 +584,18 @@ class MacroPattern(SimpleTextPattern):
         super(MacroPattern, self).__init__(*args, **kwargs)
     def handleMatch(self, m):
         return "\\%s{%s}" % (self.macro, m.group(3).replace('\n', ''))
+
+class DoubleMacroPattern(SimpleTextPattern):
+    def __init__(self, *args, **kwargs):
+        self.macros = kwargs.pop('macros', [])
+        super(DoubleMacroPattern, self).__init__(*args, **kwargs)
+
+    def handleMatch(self, m):
+
+        text = m.group(3).replace('\n', '')
+        for macro in self.macros:
+            text = "\\%s{%s}" % (macro, text)
+        return text
 
 class InlineProcessor(Pattern):
     def __init__(self, *args, **kwargs):
