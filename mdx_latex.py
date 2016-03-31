@@ -205,11 +205,9 @@ class LaTeXExtension(Extension):
         # ![alt text][2]
         md.inlinePatterns["image_reference"] = ImageReferencePattern(inlinepatterns.IMAGE_REFERENCE_RE, md, image_options = {"width": "0.5\\textwidth",
                                                                                                       "height": "0.5\\textheight"})
-        #                                         IMAGE_REFERENCE_RE, md_instance
-        #                                     )
-        #TODO inlinePatterns["short_reference"] = ReferencePattern(
-        #     SHORT_REF_RE, md_instance
-        # )
+        # [Google]
+        md.inlinePatterns["short_reference"] = ReferencePattern(inlinepatterns.SHORT_REF_RE, md)
+
         md.inlinePatterns["autolink"] = AutoLinkPattern(inlinepatterns.AUTOLINK_RE)
         md.inlinePatterns["automail"] = AutomailPattern(inlinepatterns.AUTOMAIL_RE)
         #TODO inlinePatterns["linebreak"] = SubstituteTagPattern(LINE_BREAK_RE, 'br')
@@ -501,7 +499,25 @@ class ImagePattern(SimpleTextPattern):
 
         return "\\href{%s}" % href
 
-class ReferencePattern(SimpleTextPattern):
+class LinkPattern(SimpleTextPattern):
+
+    def handleMatch(self, m):
+        text = escape_latex_entities(unescape_html_entities(m.group(2)))
+        #title = m.group(13)
+        href = escape_latex_entities(unescape_html_entities(m.group(9)))
+        if href:
+            if href[0] == "<":
+                href = href[1:-1]
+            #TODO el.set("href", self.sanitize_url(self.unescape(href.strip())))
+        else:
+            href = ""
+        return self.makeElement(href, text)
+    def makeElement(self, href, title, text):
+        if text:
+            return "\\href{%s}{%s}" % (href, text)
+        return "\\href{%s}" % href
+
+class ReferencePattern(LinkPattern):
     NEWLINE_CLEANUP_RE = re.compile(r'[ ]?\n', re.MULTILINE)
 
     def handleMatch(self, m):
@@ -523,16 +539,6 @@ class ReferencePattern(SimpleTextPattern):
         text = m.group(2)
         return self.makeElement(href, title, text)
 
-    def makeElement(self, href, title, text):
-        el = util.etree.Element('a')
-
-        el.set('href', self.sanitize_url(href))
-        if title:
-            el.set('title', title)
-
-        el.text = text
-        return el
-
 class ImageReferencePattern(ReferencePattern):
 
     def __init__(self, *args, **kwargs):
@@ -550,25 +556,6 @@ class ImageReferencePattern(ReferencePattern):
         latex_image_options = ', '.join([opt for opt in image_options if len(opt)])
         return """\\begin{figure}\\includegraphics[%s]{%s}\\caption{%s}\\end{figure}}""" \
                % (latex_image_options, image_url, caption)
-
-class LinkPattern(SimpleTextPattern):
-
-    def handleMatch(self, m):
-        #el = util.etree.Element("a")
-        text = escape_latex_entities(unescape_html_entities(m.group(2)))
-        #title = m.group(13)
-        href = escape_latex_entities(unescape_html_entities(m.group(9)))
-        if href:
-            if href[0] == "<":
-                href = href[1:-1]
-            #TODO el.set("href", self.sanitize_url(self.unescape(href.strip())))
-        else:
-            href = ""
-
-        if text:
-            return "\\href{%s}{%s}" % (href, text)
-
-        return "\\href{%s}" % href
 
 class AutoLinkPattern(SimpleTextPattern):
     def handleMatch(self, m):
