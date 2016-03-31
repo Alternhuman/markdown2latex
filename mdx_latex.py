@@ -161,23 +161,9 @@ class LaTeXExtension(Extension):
         #md.inlinePatterns.insert(1,key="emphasis", value=InlineProcessor(inlinepatterns.EMPHASIS_RE, self))
         """
     #inlinePatterns["escape"] = EscapePattern(ESCAPE_RE, md_instance)
-    #inlinePatterns["reference"] = ReferencePattern(REFERENCE_RE, md_instance)
-    #inlinePatterns["link"] = LinkPattern(LINK_RE, md_instance)
-    inlinePatterns["image_link"] = ImagePattern(IMAGE_LINK_RE, md_instance)
-    inlinePatterns["image_reference"] = ImageReferencePattern(
-        IMAGE_REFERENCE_RE, md_instance
-    )
-    inlinePatterns["short_reference"] = ReferencePattern(
-        SHORT_REF_RE, md_instance
-    )
-    inlinePatterns["autolink"] = AutolinkPattern(AUTOLINK_RE, md_instance)
-    inlinePatterns["automail"] = AutomailPattern(AUTOMAIL_RE, md_instance)
-    inlinePatterns["linebreak"] = SubstituteTagPattern(LINE_BREAK_RE, 'br')
     if md_instance.safeMode != 'escape':
         inlinePatterns["html"] = HtmlPattern(HTML_RE, md_instance)
     inlinePatterns["entity"] = HtmlPattern(ENTITY_RE, md_instance)
-    inlinePatterns["not_strong"] = SimpleTextPattern(NOT_STRONG_RE)
-    inlinePatterns["em_strong"] = DoubleTagPattern(EM_STRONG_RE, 'strong,em')
     inlinePatterns["strong_em"] = DoubleTagPattern(STRONG_EM_RE, 'em,strong')
     if md_instance.smart_emphasis:
         inlinePatterns["emphasis2"] = SimpleTagPattern(SMART_EMPHASIS_RE, 'em')
@@ -190,7 +176,11 @@ class LaTeXExtension(Extension):
         #TODO md.inlinePatterns["escape"] = EscapePattern(inlinepatterns.ESCAPE_RE, md_instance)
         # [Google][3]
         md.inlinePatterns["reference"] = ReferencePattern(inlinepatterns.REFERENCE_RE, md)
+        
+        # [text](url) or [text](<url>) or [text](url "title")
         md.inlinePatterns["link"] = LinkPattern(inlinepatterns.LINK_RE)
+        
+        # ![alttxt](http://x.com/) or ![alttxt](<http://x.com/>)
         md.inlinePatterns["image_link"] = ImagePattern(inlinepatterns.IMAGE_LINK_RE, image_options = {"width": "0.5\\textwidth",
                                                                                                       "height": "0.5\\textheight"})
         # ![alt text][2]
