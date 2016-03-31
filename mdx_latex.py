@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """Extension to python-markdown to support LaTeX (rather than html) output.
 
-Authored by Rufus Pollock: <http://www.rufuspollock.org/>
+Authored by Diego Martín <http://martinarroyo.net>, based on the work of Rufus Pollock: <http://www.rufuspollock.org/>
 
 Usage:
 ======
@@ -52,6 +52,8 @@ Version 1.3: (July 2008)
 Version 1.3.1: (August 2009)
   * Tiny bugfix to remove duplicate keyword argument and set zip_safe=False
   * Add [width=\textwidth] by default for included images
+Version 2.0: (March 2016)
+  * Completely rewrites the extension to make it compatible with Python-Markdown >= 2.6.5
 """
 
 # do some fancy importing stuff to allow use to override things in this module
