@@ -202,7 +202,9 @@ class LaTeXExtension(Extension):
         md.inlinePatterns["link"] = LinkPattern(inlinepatterns.LINK_RE)
         md.inlinePatterns["image_link"] = ImagePattern(inlinepatterns.IMAGE_LINK_RE, image_options = {"width": "0.5\\textwidth",
                                                                                                       "height": "0.5\\textheight"})
-        #TODO inlinePatterns["image_reference"] = ImageReferencePattern(
+        # ![alt text][2]
+        md.inlinePatterns["image_reference"] = ImageReferencePattern(inlinepatterns.IMAGE_REFERENCE_RE, md, image_options = {"width": "0.5\\textwidth",
+                                                                                                      "height": "0.5\\textheight"})
         #                                         IMAGE_REFERENCE_RE, md_instance
         #                                     )
         #TODO inlinePatterns["short_reference"] = ReferencePattern(
@@ -498,6 +500,56 @@ class ImagePattern(SimpleTextPattern):
             return "\\href{%s}{%s}" % (href, text)
 
         return "\\href{%s}" % href
+
+class ReferencePattern(SimpleTextPattern):
+    NEWLINE_CLEANUP_RE = re.compile(r'[ ]?\n', re.MULTILINE)
+
+    def handleMatch(self, m):
+        try:
+            id = m.group(9).lower()
+        except IndexError:
+            id = None
+        if not id:
+            # if we got something like "[Google][]" or "[Goggle]"
+            # we'll use "google" as the id
+            id = m.group(2).lower()
+
+        # Clean up linebreaks in id
+        id = self.NEWLINE_CLEANUP_RE.sub(' ', id)
+        if id not in self.markdown.references:  # ignore undefined refs
+            return None
+        href, title = self.markdown.references[id]
+
+        text = m.group(2)
+        return self.makeElement(href, title, text)
+
+    def makeElement(self, href, title, text):
+        el = util.etree.Element('a')
+
+        el.set('href', self.sanitize_url(href))
+        if title:
+            el.set('title', title)
+
+        el.text = text
+        return el
+
+class ImageReferencePattern(ReferencePattern):
+
+    def __init__(self, *args, **kwargs):
+        self.image_options = kwargs.pop('image_options', {})
+        super(ImageReferencePattern, self).__init__(*args, **kwargs)
+
+    def makeElement(self, href, title, text):
+        # TODO: title
+        latex_width = ''
+        latex_height = ''
+        caption = escape_latex_entities(unescape_html_entities(text))
+        image_url = escape_latex_entities(unescape_html_entities(href))
+        image_options = ["%s=%s" % (key, value) for key, value in self.image_options.items() if len(value)]
+        # TODO: I don't think this is really necessary
+        latex_image_options = ', '.join([opt for opt in image_options if len(opt)])
+        return """\\begin{figure}\\includegraphics[%s]{%s}\\caption{%s}\\end{figure}}""" \
+               % (latex_image_options, image_url, caption)
 
 class LinkPattern(SimpleTextPattern):
 
