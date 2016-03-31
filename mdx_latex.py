@@ -136,6 +136,7 @@ class LaTeXExtension(Extension):
 
     def extendMarkdown(self, md, md_globals):
         self.md = md
+        md.registerExtensions(['markdown.extensions.tables'], {})
 
         # remove escape pattern -- \\(.*) -- as this messes up any embedded
         # math and we don't need to escape stuff any more for html
@@ -441,7 +442,6 @@ class LaTeXTreeProcessor(Treeprocessor):
         else:
             print("I do not know %s" % node.tag)
             return node.text
-
 
 #         if ournode.type == 'text':
 #             text = escape_latex_entities(ournode.value)
@@ -888,49 +888,6 @@ class InlineProcessor(Pattern):
 #         return table_latex
 #
 #
-# # ========================= IMAGES =================================
-#
-# class ImageTextPostProcessor(Postprocessor):
-#
-#     def run(self, instr):
-#         """Process all img tags
-#
-#         Similar to process_tables this is not very sophisticated and for it
-#         to work it is expected that img tags are put in a section of their own
-#         (that is separated by at least one blank line above and below).
-#         """
-#         converter = Img2Latex()
-#         new_blocks = []
-#         for block in instr.split("\n\n") :
-#             stripped = block.strip()
-#             # <table catches modified verions (e.g. <table class="..">
-#             if stripped.startswith('<img'):
-#                 latex_img = converter.convert(stripped).strip()
-#                 new_blocks.append(latex_img)
-#             else :
-#                 new_blocks.append(block)
-#         return '\n\n'.join(new_blocks)
-#
-#
-# class Img2Latex(object):
-#
-#     def convert(self, instr):
-#         dom = xml.dom.minidom.parseString(instr)
-#         img = dom.documentElement
-#         src = img.getAttribute('src')
-#         alt = img.getAttribute('alt')
-#         out = \
-# '''
-# \\begin{figure}
-# \\centering
-# \\includegraphics[width=\\textwidth]{%s}
-# \\caption{%s}
-# \\end{figure}
-# ''' % (src, alt)
-#         return out
-#
-#
-# '''
 # ========================= FOOTNOTES =================================
 #
 # LaTeX footnote support.
@@ -1063,38 +1020,6 @@ class InlineProcessor(Pattern):
 #     # for it in title_items:
 #     #    has_title_stuff = has_title_stuff or (it in tmpl)
 #
-# def main():
-#     import argparse
-#     usage = \
-# '''usage: %prog [options] <in-file-path>
-#
-# Given a file path, process it using markdown2latex and print the result on
-# stdout.
-#
-# If using template option template should place text INSERT-TEXT-HERE in the
-# template where text should be inserted.
-# '''
-#     parser = argparse.ArgumentParser(description=usage)
-#     parser.add_argument('-t', '--template', dest='template',
-#                       default='', help='path to latex template file (optional)')
-#     (options, args) = parser.parse_args()
-#     if not len(args) > 0:
-#         parser.print_help()
-#         sys.exit(1)
-#
-#     inpath = args[0]
-#     with open(inpath, 'r') as infile:
-#
-#         md = markdown.Markdown()
-#         mkdn2latex = LaTeXExtension()
-#         mkdn2latex.extendMarkdown(md, markdown.__dict__)
-#         out = md.convert(infile.read())
-#
-#         if options.template:
-#             with open(options.template) as tmpl_fo:
-#                 out = template(tmpl_fo, out)
-#
-#     print(out)
 
 def main():
     import argparse
