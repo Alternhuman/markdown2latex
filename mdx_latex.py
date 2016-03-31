@@ -208,9 +208,14 @@ class LaTeXExtension(Extension):
         # [Google]
         md.inlinePatterns["short_reference"] = ReferencePattern(inlinepatterns.SHORT_REF_RE, md)
 
+        # <http://www.123.com>
         md.inlinePatterns["autolink"] = AutoLinkPattern(inlinepatterns.AUTOLINK_RE)
+        
+        # <me@example.com>
         md.inlinePatterns["automail"] = AutomailPattern(inlinepatterns.AUTOMAIL_RE)
-        #TODO inlinePatterns["linebreak"] = SubstituteTagPattern(LINE_BREAK_RE, 'br')
+        
+        # two spaces at end of line
+        md.inlinePatterns["linebreak"] = SubstituteTagPattern(inlinepatterns.LINE_BREAK_RE, macro="\\\\")
         #TODO if md_instance.safeMode != 'escape':
         #    inlinePatterns["html"] = HtmlPattern(HTML_RE, md_instance)
         # TODO: Is it necessary? md.inlinePatterns["entity"] = HtmlPattern(inlinepatterns.ENTITY_RE)
@@ -459,6 +464,15 @@ def dequote(string):
             return string[1:-1]
         else:
             return string
+
+class SubstituteTagPattern(SimpleTextPattern):
+    def __init__(self, *args, **kwargs):
+        self.macro = kwargs.pop('macro', '')
+        super(SubstituteTagPattern, self).__init__(*args, **kwargs)
+
+    """ Return an macro of type `tag` with no elements. """
+    def handleMatch(self, m):
+        return self.macro
 
 class ImagePattern(SimpleTextPattern):
 
