@@ -159,17 +159,7 @@ class LaTeXExtension(Extension):
         treeprocessor = LaTeXTreeProcessor(maketitle=self.maketitle)
         #index = md.inlinePatterns.index(md_globals['IMAGE_REFERENCE_PATTERN'])
         #md.inlinePatterns.insert(1,key="emphasis", value=InlineProcessor(inlinepatterns.EMPHASIS_RE, self))
-        #del md.inlinePatterns['strong']
-        #del md.inlinePatterns['emphasis']
-        #del md.inlinePatterns['strong_em']
-        #del md.inlinePatterns['em_strong']
-        #del md.inlinePatterns['emphasis2']
-        #del md.inlinePatterns['not_strong'] #md.inlinePatterns.add('em', InlineProcessor(inlinepatterns.EMPHASIS_RE, md), )
-
-        #md.inlinePatterns["emphasis"]= InlineProcessor(inlinepatterns.EMPHASIS_RE)
         """
-        inlinePatterns = odict.OrderedDict()
-    #inlinePatterns["backtick"] = BacktickPattern(BACKTICK_RE)
     #inlinePatterns["escape"] = EscapePattern(ESCAPE_RE, md_instance)
     #inlinePatterns["reference"] = ReferencePattern(REFERENCE_RE, md_instance)
     #inlinePatterns["link"] = LinkPattern(LINK_RE, md_instance)
@@ -195,10 +185,11 @@ class LaTeXExtension(Extension):
         inlinePatterns["emphasis2"] = SimpleTagPattern(EMPHASIS_2_RE, 'em')
     return inlinePatterns
     """
-
+        # `e=f()` or ``e=f("`")``
         md.inlinePatterns["backtick"] = MacroPattern(inlinepatterns.BACKTICK_RE, macro='verb') #TODO Add group number?
         #TODO md.inlinePatterns["escape"] = EscapePattern(inlinepatterns.ESCAPE_RE, md_instance)
-        #TODO: Really necessary? md.inlinePatterns["reference"] = ReferencePattern(inlinepatterns.REFERENCE_RE, md_instance)
+        # [Google][3]
+        md.inlinePatterns["reference"] = ReferencePattern(inlinepatterns.REFERENCE_RE, md)
         md.inlinePatterns["link"] = LinkPattern(inlinepatterns.LINK_RE)
         md.inlinePatterns["image_link"] = ImagePattern(inlinepatterns.IMAGE_LINK_RE, image_options = {"width": "0.5\\textwidth",
                                                                                                       "height": "0.5\\textheight"})
@@ -220,12 +211,19 @@ class LaTeXExtension(Extension):
         #    inlinePatterns["html"] = HtmlPattern(HTML_RE, md_instance)
         # TODO: Is it necessary? md.inlinePatterns["entity"] = HtmlPattern(inlinepatterns.ENTITY_RE)
 
+        # stand-alone * or _
         md.inlinePatterns["not_strong"] = SimpleTextPattern(inlinepatterns.NOT_STRONG_RE)
+        
+        # ***strongem*** or ***em*strong**
         md.inlinePatterns["em_strong"] = DoubleMacroPattern(inlinepatterns.EM_STRONG_RE, macros=['textbf','textit'])
+        
+        # *emphasis*
         md.inlinePatterns["emphasis"] = EmphasisPattern(inlinepatterns.EMPHASIS_RE)
+        
+        # **strong**
         md.inlinePatterns["strong"] = StrongPattern(inlinepatterns.STRONG_RE)
-        #TODO md.inlinePatterns["linebreak"] = LineBreakPattern(inlinepatterns.LINE_BREAK_RE)
-        md.treeprocessors['latex'] = treeprocessor
+        
+        md.treeprocessors["latex"] = treeprocessor
 
 #          math_pp = MathTextPostProcessor()
 #         table_pp = TableTextPostProcessor()
@@ -611,15 +609,11 @@ class AutomailPattern(SimpleTextPattern):
         # return el
 
         mail = m.group(2)
+        mail = escape_latex_entities(unescape_html_entities(mail))
         if mail.startswith('mailto:'):
             mail = mail[len('mailto:'):]
 
-        mail = escape_latex_entities(unescape_html_entities(mail))
-
         return "\\href{%s}{%s}" % ('mailto:'+mail, mail)
-
-
-
 
 class EmphasisPattern(SimpleTextPattern):
     def handleMatch(self, m):
