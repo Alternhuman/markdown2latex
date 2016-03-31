@@ -232,6 +232,66 @@ class LaTeXExtension(Extension):
         # TODO: What would the purpose of this be?
         pass
 
+
+class TableProcessor(object):
+    NO_BORDERS = 0
+    ONLY_EXTERNAL = 1
+    ALL = 2
+    def __init__(self, *args, **kwargs):
+        style = kwargs.get('style', {})
+        self.table_style = style.get('table_style', {'table_borders': self.ONLY_EXTERNAL})
+        self.alignment = style.get('alignment', {
+                                                    'left': 'l',
+                                                    'center': 'c',
+                                                    'right': 'r',
+                                                    'default': 'p'
+                                                })
+    def processNode(self, node):
+        header_specifiers = []
+        buffer = ""
+        head = node.find('thead')
+        head_row = head.find('tr') if head else None
+        head_row_data = []
+        if head_row:
+            for th in head_row.findall('th'):
+                head_row_data.append(th.text)
+                header_specifiers.append(self.getAlignmentAttribute(th.attrib.get('align', '')))
+
+        table_body = node.find('tbody')
+        table_body_data = []
+        if table_body:
+            for tr in table_body.findall('tr'):
+                table_body_data.append(" & ".join([t.text for t in tr.findall('td')]))
+
+        separator_style = self.table_style.get('table_borders', self.ONLY_EXTERNAL)
+        if separator_style == self.NO_BORDERS:
+            separator = " "
+            line_separator = "\\\\\n"
+        elif separator_style == self.ALL:
+            separator = " | "
+            line_separator = "\\\\\\hline\n"
+        else: #ONLY_EXTERNAL
+            separator = " | "
+            line_separator = "\\\\\n"
+        header_specifiers_text = separator.join(header_specifiers)
+        if separator_style == self.ALL:
+            header_specifiers_text = "| %s |" % header_specifiers_text
+        buffer += "\\begin{tabular}{%s}" % header_specifiers_text
+        buffer += "\n" if separator_style == self.NO_BORDERS else "\\hline\n"
+        buffer += line_separator.join(table_body_data)
+        if separator_style != self.NO_BORDERS:
+            buffer += "\\hline\n"
+        buffer += "\\end{tabular}"
+        return buffer
+
+    def getAlignmentAttribute(self, value):
+        """Returns the LaTeX alignment specifier for the HTML value
+            p means normal cells, they are like parbox with alignment at the top line
+            b means alignment at the bottom, so the baseline is at the bottom line
+            m means alignment in the vertical center, i.e. the baseline is in the center.
+        """
+        return self.alignment.get(value, self.alignment.get('default', 'p'))
+
 class LaTeXTreeProcessor(Treeprocessor):
 
     def __init__(self, *args, **kwargs):
@@ -372,7 +432,12 @@ class LaTeXTreeProcessor(Treeprocessor):
 #         else:
 #             buffer = subcontent
 #         return buffer
-
+        elif node.tag == 'table':
+            table_style = {
+                'table_borders': TableProcessor.ONLY_EXTERNAL
+            }
+            buffer += TableProcessor(style={'table_style': table_style}).processNode(node)
+            return buffer
         else:
             print("I do not know %s" % node.tag)
             return node.text
